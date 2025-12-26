@@ -1,13 +1,13 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from app.db.mongodb import books_collection
 from app.models.book import BookCreate
 from datetime import datetime
-from bson import ObjectId
+from app.auth.deps import get_current_user
 
 router = APIRouter(prefix="/books", tags=["Books"])
 
 @router.post("")
-async def add_or_update_book(book: BookCreate, user_id: str):
+async def add_or_update_book(book: BookCreate, user_id: str = Depends(get_current_user),):
     # now = datetime.utcnow()
     now = datetime.now(datetime.timezone.utc)
 
@@ -24,7 +24,7 @@ async def add_or_update_book(book: BookCreate, user_id: str):
 
 @router.get("")
 async def list_books(
-    user_id: str,
+    user_id: str = Depends(get_current_user),
     q: str | None = None,
     genre: str | None = None,
     read_status: str | None = None,
@@ -81,7 +81,7 @@ async def list_books(
     }
 
 @router.delete("/{isbn}")
-async def delete_book(isbn: str, user_id: str):
+async def delete_book(isbn: str, user_id: str = Depends(get_current_user),):
     result = await books_collection.delete_one(
         {"isbn": isbn, "user_id": user_id}
     )
