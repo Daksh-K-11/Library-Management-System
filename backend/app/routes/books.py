@@ -1,0 +1,60 @@
+from fastapi import APIRouter, HTTPException, Query
+from app.db.mongodb import books_collection
+from app.models.book import BookCreate
+from datetime import datetime
+from bson import ObjectId
+
+router = APIRouter(prefix="/books", tags=["Books"])
+
+@router.post("")
+async def add_or_update_book(book: BookCreate, user_id: str):
+    # now = datetime.utcnow()
+    now = datetime.now(datetime.timezone.utc)
+
+    await books_collection.update_one(
+        {"user_id": user_id, "isbn": book.isbn},
+        {
+            "$set": book.dict(),
+            "$setOnInsert": {"created_at": now},
+            "$currentDate": {"updated_at": True}
+        },
+        upsert=True
+    )
+    return {"message": "Book saved"}
+
+@router.get("")
+async def list_books(
+    user_id: str,
+    q: str | None = None,
+    read_status: str | None = None,
+    min_rating: int | None = None
+):
+    query = {"user_id": user_id}
+
+    if q:
+        query["$text"] = {"$search": q}
+
+    if read_status:
+        query["read_status"] = read_status
+
+    if min_rating:
+        query["rating"] = {"$gte": min_rating}
+
+    books = []
+    cursor = books_collection.find(query).sort("updated_at", -1)
+
+    async for book in cursor:
+        book["id"] = str(book["_id"])
+        del book["_id"]
+        books.append(book)
+
+    return books
+
+@router.delete("/{isbn}")
+async def delete_book(isbn: str, user_id: str):
+    result = await books_collection.delete_one(
+        {"isbn": isbn, "user_id": user_id}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Book not found")
+    return {"message": "Deleted"}

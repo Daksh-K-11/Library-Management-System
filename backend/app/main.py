@@ -1,17 +1,7 @@
 from fastapi import FastAPI
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from .db.mongodb import books_collection
 
 app = FastAPI(title="Library Management API")
-
-# MongoDB connection (CREATED ONCE)
-MONGO_URI = os.getenv("MONGO_URI")
-client = AsyncIOMotorClient(MONGO_URI)
-db = client.library
-books_collection = db.books
 
 @app.get("/")
 async def health_check():
