@@ -26,13 +26,22 @@ async def add_or_update_book(book: BookCreate, user_id: str):
 async def list_books(
     user_id: str,
     q: str | None = None,
+    genre: str | None = None,
     read_status: str | None = None,
-    min_rating: int | None = None
+    min_rating: int | None = None,
+
+    limit: int = Query(20, ge=1, le=50),
+    sort: str = Query("updated_at", pattern="^(updated_at|rating|title)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+    cursor: str | None = None
 ):
     query = {"user_id": user_id}
 
     if q:
         query["$text"] = {"$search": q}
+
+    if genre:
+        query["genres"] = genre
 
     if read_status:
         query["read_status"] = read_status
@@ -40,15 +49,36 @@ async def list_books(
     if min_rating:
         query["rating"] = {"$gte": min_rating}
 
-    books = []
-    cursor = books_collection.find(query).sort("updated_at", -1)
+    # Cursor logic
+    if cursor:
+        cursor_dt = datetime.fromisoformat(cursor)
+        query["updated_at"] = {"$lt": cursor_dt}
 
-    async for book in cursor:
+    direction = -1 if order == "desc" else 1
+
+    cursor_db = (
+        books_collection
+        .find(query)
+        .sort([(sort, direction), ("_id", direction)])
+        .limit(limit + 1)
+    )
+
+    books = []
+    async for book in cursor_db:
         book["id"] = str(book["_id"])
         del book["_id"]
         books.append(book)
 
-    return books
+    next_cursor = None
+    if len(books) > limit:
+        last = books.pop()
+        next_cursor = last["updated_at"].isoformat()
+
+    return {
+        "items": books,
+        "next_cursor": next_cursor,
+        "limit": limit
+    }
 
 @router.delete("/{isbn}")
 async def delete_book(isbn: str, user_id: str):
