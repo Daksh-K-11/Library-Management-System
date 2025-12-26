@@ -15,11 +15,7 @@ async def lookup_isbn(isbn: str):
     if data.get("totalItems", 0) == 0:
         raise HTTPException(404, "ISBN not found")
 
-    print(data)
     info = data["items"][0]["volumeInfo"]
-    print()
-    print("----- Book Info -----")
-    print(info)
 
     return {
     "isbn": isbn,
