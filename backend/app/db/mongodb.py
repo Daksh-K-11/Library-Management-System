@@ -10,3 +10,4 @@ client = AsyncIOMotorClient(
 db = client[DB_NAME]
 books_collection = db.books
 users_collection = db.users
+user_books_collection = db.user_books
