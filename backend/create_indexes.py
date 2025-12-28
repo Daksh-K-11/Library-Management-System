@@ -8,18 +8,16 @@ from app.db.mongodb import user_books_collection, books_collection, users_collec
 ## ---------------------------------------------------------------------------- ##
 
 async def create_indexes():
-    
+
+    # users
     await users_collection.create_index(
         [("email", ASCENDING)],
         unique=True
     )
-    
-    # ----------------------
-    # user_books collection
-    # ----------------------
 
+    # user_books
     await user_books_collection.create_index(
-        [("user_id", ASCENDING), ("updated_at", DESCENDING)]
+        [("user_id", ASCENDING), ("updated_at", DESCENDING), ("_id", DESCENDING)]
     )
 
     await user_books_collection.create_index(
@@ -35,11 +33,7 @@ async def create_indexes():
     )
 
     await user_books_collection.create_index(
-        [("search_blob", TEXT)]
-    )
-
-    await user_books_collection.create_index(
-        [("user_id", ASCENDING), ("book_title", ASCENDING)]
+        [("user_id", ASCENDING), ("search_blob", TEXT)]
     )
 
     await user_books_collection.create_index(
@@ -47,16 +41,19 @@ async def create_indexes():
         unique=True
     )
 
-    # ----------------------
-    # books collection
-    # ----------------------
-
+    # books
     await books_collection.create_index(
         [("isbn_13", ASCENDING)],
         unique=True
     )
 
+    await books_collection.create_index(
+        [("isbn_10", ASCENDING)],
+        sparse=True
+    )
+
     print("✅ All indexes created successfully")
+
 
 
 if __name__ == "__main__":

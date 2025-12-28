@@ -1,96 +1,5 @@
-# from fastapi import APIRouter, HTTPException, Query, Depends
-# from app.db.mongodb import books_collection
-# from app.models.book import BookCreate
-# from datetime import datetime
-# from app.auth.deps import get_current_user
-
-# router = APIRouter(prefix="/books", tags=["Books"])
-
-# @router.post("")
-# async def add_or_update_book(book: BookCreate, user_id: str = Depends(get_current_user),):
-#     # now = datetime.utcnow()
-#     now = datetime.now(datetime.timezone.utc)
-
-#     await books_collection.update_one(
-#         {"user_id": user_id, "isbn": book.isbn},
-#         {
-#             "$set": book.dict(),
-#             "$setOnInsert": {"created_at": now},
-#             "$currentDate": {"updated_at": True}
-#         },
-#         upsert=True
-#     )
-#     return {"message": "Book saved"}
-
-# @router.get("")
-# async def list_books(
-#     user_id: str = Depends(get_current_user),
-#     q: str | None = None,
-#     genre: str | None = None,
-#     read_status: str | None = None,
-#     min_rating: int | None = None,
-
-#     limit: int = Query(20, ge=1, le=50),
-#     sort: str = Query("updated_at", pattern="^(updated_at|rating|title)$"),
-#     order: str = Query("desc", pattern="^(asc|desc)$"),
-#     cursor: str | None = None
-# ):
-#     query = {"user_id": user_id}
-
-#     if q:
-#         query["$text"] = {"$search": q}
-
-#     if genre:
-#         query["genres"] = genre
-
-#     if read_status:
-#         query["read_status"] = read_status
-
-#     if min_rating:
-#         query["rating"] = {"$gte": min_rating}
-
-#     # Cursor logic
-#     if cursor:
-#         cursor_dt = datetime.fromisoformat(cursor)
-#         query["updated_at"] = {"$lt": cursor_dt}
-
-#     direction = -1 if order == "desc" else 1
-
-#     cursor_db = (
-#         books_collection
-#         .find(query)
-#         .sort([(sort, direction), ("_id", direction)])
-#         .limit(limit + 1)
-#     )
-
-#     books = []
-#     async for book in cursor_db:
-#         book["id"] = str(book["_id"])
-#         del book["_id"]
-#         books.append(book)
-
-#     next_cursor = None
-#     if len(books) > limit:
-#         last = books.pop()
-#         next_cursor = last["updated_at"].isoformat()
-
-#     return {
-#         "items": books,
-#         "next_cursor": next_cursor,
-#         "limit": limit
-#     }
-
-# @router.delete("/{isbn}")
-# async def delete_book(isbn: str, user_id: str = Depends(get_current_user),):
-#     result = await books_collection.delete_one(
-#         {"isbn": isbn, "user_id": user_id}
-#     )
-#     if result.deleted_count == 0:
-#         raise HTTPException(404, "Book not found")
-#     return {"message": "Deleted"}
-
-
 from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
 from datetime import datetime, timezone
 from app.db.mongodb import books_collection, user_books_collection
 from app.models.user_books import UserBookCreate
@@ -139,15 +48,45 @@ async def add_book_to_library(
 @router.get("")
 async def list_user_books(
     user_id: str = Depends(get_current_user),
-    genre: str | None = None,
-    limit: int = Query(20, le=50)
+
+    # Filters
+    q: Optional[str] = None,
+    genre: Optional[str] = None,
+    read_status: Optional[str] = None,
+    min_rating: Optional[int] = None,
+
+    # Pagination & sorting
+    limit: int = Query(20, ge=1, le=50),
+    sort: str = Query("updated_at", pattern="^(updated_at|rating|title)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+    cursor: Optional[str] = None,
 ):
-    match = {"user_id": user_id}
+    match: dict = {"user_id": user_id}
+
+    # 🔍 Search (uses search_blob)
+    if q:
+        match["$text"] = {"$search": q}
+
     if genre:
         match["genres"] = genre
 
+    if read_status:
+        match["read_status"] = read_status
+
+    if min_rating is not None:
+        match["rating"] = {"$gte": min_rating}
+
+    # ⏱ Cursor pagination
+    if cursor:
+        cursor_dt = datetime.fromisoformat(cursor)
+        match["updated_at"] = {"$lt": cursor_dt}
+
+    direction = -1 if order == "desc" else 1
+
     pipeline = [
         {"$match": match},
+
+        # Join books
         {
             "$lookup": {
                 "from": "books",
@@ -157,16 +96,38 @@ async def list_user_books(
             }
         },
         {"$unwind": "$book"},
-        {"$limit": limit}
+
+        # Sorting (special case for title)
+        {
+            "$sort": {
+                "book.title" if sort == "title" else sort: direction,
+                "_id": direction
+            }
+        },
+
+        # Pagination
+        {"$limit": limit + 1},
     ]
 
-    cursor = user_books_collection.aggregate(pipeline)
-    results = []
+    cursor_db = user_books_collection.aggregate(pipeline)
 
-    async for doc in cursor:
+    items = []
+    async for doc in cursor_db:
         doc["id"] = str(doc["_id"])
         doc["book"]["id"] = str(doc["book"]["_id"])
-        del doc["_id"], doc["book"]["_id"]
-        results.append(doc)
 
-    return results
+        del doc["_id"]
+        del doc["book"]["_id"]
+
+        items.append(doc)
+
+    next_cursor = None
+    if len(items) > limit:
+        last = items.pop()
+        next_cursor = last["updated_at"].isoformat()
+
+    return {
+        "items": items,
+        "next_cursor": next_cursor,
+        "limit": limit
+    }
