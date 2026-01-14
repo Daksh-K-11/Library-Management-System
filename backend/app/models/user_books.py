@@ -16,8 +16,14 @@ class UserBookBase(BaseModel):
 class UserBookCreate(UserBookBase):
     pass
 
+class UserBookUpdate(UserBookBase):
+    pass
+
 class UserBookInDB(UserBookBase):
     id: str
     user_id: str
     created_at: datetime
     updated_at: datetime
+
+class UserBooksDelete(BaseModel):
+    user_book_ids: list[str]

@@ -9,6 +9,10 @@ class LibraryBase(BaseModel):
 class LibraryCreate(LibraryBase):
     pass
 
+class LibraryUpdate(BaseModel):
+    name: Optional[str] = Field(None, example="My Fantasy Library")
+    is_public: Optional[bool] = None
+
 class LibraryInDB(LibraryBase):
     id: str
     user_id: str

@@ -11,3 +11,5 @@ db = client[DB_NAME]
 books_collection = db.books
 users_collection = db.users
 user_books_collection = db.user_books
+libraries_collection = db.libraries
+library_books_collection = db.library_books

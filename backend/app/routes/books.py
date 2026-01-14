@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timezone
-from app.db.mongodb import books_collection, user_books_collection
-from app.models.user_books import UserBookCreate
+from bson import ObjectId
+from app.db.mongodb import books_collection, user_books_collection, library_books_collection
+from app.models.user_books import UserBookCreate, UserBookUpdate, UserBooksDelete
 from app.auth.deps import get_current_user
 from app.utils.isbn import normalize_isbn
 from app.utils.search import build_search_blob
@@ -23,10 +24,10 @@ async def add_book_to_library(
 
     now = datetime.now(timezone.utc)
     
-    search_blob = build_search_blob(book, data)
+    search_blob = build_search_blob(book, data.model_dump())
 
     await user_books_collection.update_one(
-        {"user_id": user_id, "book_id": str(book["_id"])},
+        {"user_id": user_id, "book_id": book["_id"]},
         {
             "$set": {
                 **data.model_dump(),
@@ -34,7 +35,7 @@ async def add_book_to_library(
                 },
             "$setOnInsert": {
                 "user_id": user_id,
-                "book_id": str(book["_id"]),
+                "book_id": book["_id"],
                 "created_at": now
             },
             "$currentDate": {"updated_at": True}
@@ -113,11 +114,13 @@ async def list_user_books(
 
     items = []
     async for doc in cursor_db:
-        doc["id"] = str(doc["_id"])
+        doc["user_book_id"] = str(doc["_id"])
         doc["book"]["id"] = str(doc["book"]["_id"])
+        doc["book_id"] = str(doc["book_id"])
 
         del doc["_id"]
         del doc["book"]["_id"]
+        del doc["user_id"]
 
         items.append(doc)
 
@@ -131,3 +134,67 @@ async def list_user_books(
         "next_cursor": next_cursor,
         "limit": limit
     }
+
+
+@router.patch("/{user_book_id}")
+async def update_user_book(
+    user_book_id: str,
+    data: UserBookUpdate,
+    user_id: str = Depends(get_current_user)
+):
+    oid = ObjectId(user_book_id)
+
+    # 1️⃣ Get existing user-book doc
+    user_book = await user_books_collection.find_one({
+        "_id": oid,
+        "user_id": user_id
+    })
+
+    if not user_book:
+        raise HTTPException(404, "Book not found")
+
+    # 2️⃣ Update user-book fields
+    updates = data.model_dump(exclude_unset=True)
+
+    if updates:
+        await user_books_collection.update_one(
+            {"_id": oid},
+            {
+                "$set": updates,
+                "$currentDate": {"updated_at": True}
+            }
+        )
+
+    # 3️⃣ Rebuild search_blob (IMPORTANT)
+    book = await books_collection.find_one({
+        "_id": ObjectId(user_book["book_id"])
+    })
+
+    if book:
+        merged_data = {**user_book, **updates}
+        search_blob = build_search_blob(book, merged_data)
+
+        await user_books_collection.update_one(
+            {"_id": oid},
+            {"$set": {"search_blob": search_blob}}
+        )
+
+    return {"message": "Book updated"}
+
+
+
+@router.delete("")
+async def delete_books_globally(
+    user_book_ids: UserBooksDelete,
+    user_id: str = Depends(get_current_user)
+):
+    ids = [ObjectId(i) for i in user_book_ids.user_book_ids]
+
+    await library_books_collection.delete_many(
+        {"user_book_id": {"$in": ids}}
+    )
+    await user_books_collection.delete_many(
+        {"_id": {"$in": ids}, "user_id": user_id}
+    )
+
+    return {"message": "Books deleted from all libraries"}

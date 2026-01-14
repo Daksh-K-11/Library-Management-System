@@ -28,3 +28,5 @@ async def login(data: User):
 
     token = create_access_token({"user_id": str(user["_id"])})
     return {"access_token": token, "token_type": "bearer"}
+
+

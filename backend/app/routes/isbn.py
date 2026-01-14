@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 import httpx
 from app.db.mongodb import books_collection
 from app.utils.isbn import normalize_isbn
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/isbn", tags=["ISBN"])
 
@@ -29,7 +29,7 @@ async def lookup_isbn(isbn):
         raise HTTPException(404, "ISBN not found")
 
     info = data["items"][0]["volumeInfo"]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     book_doc = {
         "isbn_13": isbn_13,
