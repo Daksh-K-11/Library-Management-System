@@ -361,12 +361,12 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                   <span className="font-medium">Add New Library</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton tooltip="Settings" className="h-11 rounded-xl">
                   <Settings className="w-4 h-4" />
                   <span className="font-medium">Settings</span>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
