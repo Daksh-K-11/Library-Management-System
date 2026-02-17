@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
+import re
 from app.db.mongodb import books_collection, user_books_collection, library_books_collection
 from app.models.user_books import UserBookCreate, UserBookUpdate, UserBooksDelete
 from app.auth.deps import get_current_user
@@ -66,7 +67,11 @@ async def list_user_books(
 
     # 🔍 Search (uses search_blob)
     if q:
-        match["$text"] = {"$search": q}
+        escaped = re.escape(q.strip().lower())
+        match["search_blob"] = {
+            "$regex": escaped,
+            "$options": "i"
+        }
 
     if genre:
         match["genres"] = genre
@@ -134,6 +139,7 @@ async def list_user_books(
         "next_cursor": next_cursor,
         "limit": limit
     }
+
 
 
 @router.patch("/{user_book_id}")
