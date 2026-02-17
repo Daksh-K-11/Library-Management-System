@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { LibraryIcon, BookOpen, Settings, Plus, LogOut, Trash2, Edit3, MoreHorizontal, Link } from "lucide-react"
+import { LibraryIcon, BookOpen, Settings, Plus, LogOut, Trash2, Edit3, MoreHorizontal, Link, Copy } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getToken, API_BASE_URL } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { on } from "events"
 
 interface Library {
   id: string
@@ -61,6 +62,14 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
   const [selectedLibraryForPublic, setSelectedLibraryForPublic] = React.useState<Library | null>(null)
   const { toast } = useToast()
   const router = useRouter()
+
+  //Open Delete Dialog Confirmation
+  // Delete dialog state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
+  const [selectedLibraryForDelete, setSelectedLibraryForDelete] = React.useState<Library | null>(null)
+  const [deleteCountdown, setDeleteCountdown] = React.useState(3)
+  const [isDeleteEnabled, setIsDeleteEnabled] = React.useState(false)
+
 
   const fetchLibraries = React.useCallback(async () => {
     const token = getToken()
@@ -219,6 +228,43 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
     }
   }
 
+  // Open delete confirmation dialog with countdown
+  const openDeleteDialog = (lib: Library) => {
+    setSelectedLibraryForDelete(lib)
+    setDeleteCountdown(3)
+    setIsDeleteEnabled(false)
+    setIsDeleteDialogOpen(true)
+  }
+
+  React.useEffect(() => {
+    if (!isDeleteDialogOpen) return
+
+    setDeleteCountdown(3)
+    setIsDeleteEnabled(false)
+
+    const interval = setInterval(() => {
+      setDeleteCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          setIsDeleteEnabled(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [isDeleteDialogOpen])
+
+  const confirmDeleteLibrary = async () => {
+    if (!selectedLibraryForDelete) return
+
+    await deleteLibrary(selectedLibraryForDelete.id)
+    setIsDeleteDialogOpen(false)
+  }
+
+
+
 
   return (
     <Sidebar variant="inset" className="border-r border-border/50">
@@ -273,7 +319,7 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                         sideOffset={8}
                         className="w-56 rounded-2xl bg-background/95 backdrop-blur border border-border/60 shadow-xl p-1">
                         <DropdownMenuItem
-                          className="gap-2"
+                          className="gap-2 hover:bg-blue-100 hover:text-destructive cursor-pointer"
                           onClick={() => openRenameDialog(lib)}
                         >
                           <Edit3 className="w-4 h-4" /> Rename
@@ -282,15 +328,15 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                         {/* Public URL menu item opens dialog */}
                         <DropdownMenuItem
                           onClick={() => openPublicDialog(lib)}
-                          className="gap-2"
+                          className="gap-2 hover:bg-blue-100 hover:text-destructive cursor-pointer"
                         >
                           {/* small label + obscured or actual url in small text below */}
-                            <Link className="w-4 h-4"/>Public URL
+                          <Link className="w-4 h-4" />Public URL
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
-                          onClick={() => deleteLibrary(lib.id)}
-                          className="gap-2 text-destructive focus:text-destructive"
+                          onClick={() => openDeleteDialog(lib)}
+                          className="gap-2 text-destructive focus:text-destructive hover:bg-red-300 hover:text-destructive cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" /> Delete
                         </DropdownMenuItem>
@@ -438,23 +484,6 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                 <div className="text-sm font-medium">{selectedLibraryForPublic?.name}</div>
               </div>
 
-              {/* <div className="space-y-2">
-                <Label className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
-                  Public URL
-                </Label>
-
-                <Input
-                  value={
-                    selectedLibraryForPublic
-                      ? selectedLibraryForPublic.is_public
-                        ? buildPublicUrl(selectedLibraryForPublic.slug)
-                        : "••••••••••••••••••••"
-                      : ""
-                  }
-                  readOnly
-                  className="h-10 bg-slate-100/50 border-slate-200/50 rounded-lg text-sm"
-                />
-              </div> */}
               <div className="space-y-2">
                 <Label className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
                   Public URL
@@ -474,10 +503,10 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                   {selectedLibraryForPublic?.is_public && (
                     <Button
                       variant="secondary"
-                      className="h-10 rounded-lg"
+                      className="h-10 rounded-lg cursor-pointer hover:bg-gray-200"
                       onClick={() => handleCopyPublicUrl(selectedLibraryForPublic.slug)}
                     >
-                      Copy
+                      <Copy />
                     </Button>
                   )}
                 </div>
@@ -505,9 +534,69 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                 Done
               </Button>
             </DialogFooter>
+
           </motion.div>
         </DialogContent>
       </Dialog>
+
+
+      { /*Delete Dialogue confirmation */}
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl border-red-200 shadow-2xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-semibold text-red-600">
+                Delete Library
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="py-6 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to permanently delete{" "}
+                <span className="font-semibold text-foreground">
+                  {selectedLibraryForDelete?.name}
+                </span>
+                ?
+              </p>
+
+              <p className="text-xs text-red-500">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <DialogFooter className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={confirmDeleteLibrary}
+                disabled={!isDeleteEnabled}
+                className={`
+            flex-1
+            bg-red-600 text-white
+            hover:bg-red-700
+            active:bg-red-800
+            transition-all
+            ${!isDeleteEnabled ? "opacity-60 cursor-not-allowed" : ""}
+          `}
+              >
+                {isDeleteEnabled ? "Delete Permanently" : `Delete (${deleteCountdown})`}
+              </Button>
+            </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+
     </Sidebar>
   )
 }
