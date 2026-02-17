@@ -92,38 +92,6 @@ export function BookDetailView({
     }
   }
 
-  // const handleDelete = async () => {
-  //   const token = getToken()
-  //   if (!token) return
-
-  //   setIsDeleting(true)
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/books`, {
-  //       method: "DELETE",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //       body: JSON.stringify({ user_book_ids: [book.user_book_id] }),
-  //     })
-
-  //     if (response.ok) {
-  //       showStatusNotification("success", "Book deleted successfully!")
-  //       setTimeout(() => {
-  //         onDelete(book.user_book_id)
-  //         onClose()
-  //         onRefresh()
-  //       }, 500)
-  //     } else {
-  //       showStatusNotification("error", "Failed to delete book")
-  //     }
-  //   } catch (error) {
-  //     showStatusNotification("error", "Error deleting book")
-  //   } finally {
-  //     setIsDeleting(false)
-  //   }
-  // }
-
   const addGenre = () => {
     if (newGenre.trim() && !editData.genres.includes(newGenre)) {
       setEditData((prev) => ({
@@ -375,69 +343,6 @@ export function BookDetailView({
           </motion.div>
         </motion.div>
       )}
-
-      {/* {showCopyModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4"
-          >
-            <h2 className="text-lg font-bold">Select Libraries</h2>
-
-            {availableLibraries.length === 0 ? (
-              <p className="text-sm text-slate-500">No available libraries.</p>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {availableLibraries.map((lib) => (
-                  <label
-                    key={lib._id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedLibraries.includes(lib._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedLibraries((prev) => [...prev, lib._id])
-                        } else {
-                          setSelectedLibraries((prev) =>
-                            prev.filter((id) => id !== lib._id)
-                          )
-                        }
-                      }}
-                    />
-                    <span className="text-sm font-medium">{lib.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowCopyModal(false)}
-              >
-                Cancel
-              </Button>
-
-              <Button
-                onClick={handleCopyToLibraries}
-                disabled={isCopying || selectedLibraries.length === 0}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                {isCopying ? "Copying..." : "Confirm"}
-              </Button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )} */}
-
-
 
       {/* ───────────────── Modal Overlay ───────────────── */}
       <motion.div
