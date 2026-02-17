@@ -285,8 +285,98 @@ export function BookDetailView({
   return (
     <>
 
-
       {showCopyModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="
+      fixed inset-0 z-50
+      bg-black/50 backdrop-blur-sm
+      flex items-end sm:items-center justify-center
+      px-3 sm:px-0
+    "
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="
+        bg-white rounded-t-2xl sm:rounded-2xl
+        shadow-2xl
+        w-full sm:max-w-md
+        max-h-[90vh]
+        flex flex-col
+      "
+          >
+            {/* Header */}
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-bold">Select Libraries</h2>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="p-4 space-y-2 overflow-y-auto flex-1">
+              {availableLibraries.length === 0 ? (
+                <p className="text-sm text-slate-500">No available libraries.</p>
+              ) : (
+                availableLibraries.map((lib) => (
+                  <label
+                    key={lib._id}
+                    className="
+                flex items-center gap-4
+                p-3 rounded-xl
+                border
+                hover:bg-slate-50
+                active:bg-slate-100
+                cursor-pointer
+              "
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5"
+                      checked={selectedLibraries.includes(lib._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLibraries((prev) => [...prev, lib._id])
+                        } else {
+                          setSelectedLibraries((prev) =>
+                            prev.filter((id) => id !== lib._id)
+                          )
+                        }
+                      }}
+                    />
+                    <span className="text-sm font-medium">{lib.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowCopyModal(false)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                className="
+            flex-1
+            bg-emerald-600 text-white
+            hover:bg-emerald-700
+          "
+                onClick={handleCopyToLibraries}
+                disabled={isCopying || selectedLibraries.length === 0}
+              >
+                {isCopying ? "Copying..." : "Confirm"}
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* {showCopyModal && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -345,7 +435,7 @@ export function BookDetailView({
             </div>
           </motion.div>
         </motion.div>
-      )}
+      )} */}
 
 
 

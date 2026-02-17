@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { BookDetailView } from "@/components/book-detail-view"
+import { AddBookModal } from "@/components/add-book-modal"
 
 function DashboardContent() {
   const [books, setBooks] = React.useState<ApiBook[]>([])
@@ -27,6 +28,7 @@ function DashboardContent() {
   const { toast } = useToast()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
 
   const fetchBooks = React.useCallback(async () => {
     const token = getToken()
@@ -142,12 +144,18 @@ function DashboardContent() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <Button className="h-10 rounded-full gap-2 shadow-lg shadow-primary/10 text-sm">
+            <Button onClick={() => setIsAddModalOpen(true)} className="h-10 rounded-full gap-2 shadow-lg shadow-primary/10 text-sm">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add</span>
             </Button>
           </div>
         </header>
+
+        <AddBookModal
+          open={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onBookAdded={fetchBooks}
+        />
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-8">
