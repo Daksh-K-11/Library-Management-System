@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { LibraryIcon, BookOpen, Settings, Plus, LogOut, Trash2, Edit3, MoreHorizontal } from "lucide-react"
+import { LibraryIcon, BookOpen, Settings, Plus, LogOut, Trash2, Edit3, MoreHorizontal, Link } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -260,14 +260,18 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                     <span className="font-medium truncate">{lib.name}</span>
                   </SidebarMenuButton>
 
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                  <div
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg">
                           <MoreHorizontal className="w-3.5 h-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                      <DropdownMenuContent
+                        align="end"
+                        sideOffset={8}
+                        className="w-56 rounded-2xl bg-background/95 backdrop-blur border border-border/60 shadow-xl p-1">
                         <DropdownMenuItem
                           className="gap-2"
                           onClick={() => openRenameDialog(lib)}
@@ -281,9 +285,7 @@ export function AppSidebar({ activeLibraryId, onLibrarySelect }: AppSidebarProps
                           className="gap-2"
                         >
                           {/* small label + obscured or actual url in small text below */}
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">Public URL</span>
-                          </div>
+                            <Link className="w-4 h-4"/>Public URL
                         </DropdownMenuItem>
 
                         <DropdownMenuItem

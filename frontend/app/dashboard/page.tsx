@@ -37,7 +37,7 @@ function DashboardContent() {
 
     try {
       const endpoint = activeLibraryId
-        ? `${API_BASE_URL}/librarybooks/${activeLibraryId}`
+        ? `${API_BASE_URL}/librarybooks/${activeLibraryId}?${searchQuery}`
         : `${API_BASE_URL}/books?q=${searchQuery}`
 
       const response = await fetch(endpoint, {
@@ -171,7 +171,7 @@ function DashboardContent() {
                 <AnimatePresence>
                   {books.map((book) => (
                     <div key={book.user_book_id} onClick={() => setSelectedBook(book)} role="button" tabIndex={0}>
-                      <BookCard data={book} onDelete={handleDelete} />
+                      <BookCard data={book} />
                     </div>
                   ))}
                 </AnimatePresence>
@@ -187,6 +187,7 @@ function DashboardContent() {
                       setSelectedBook(null)
                     }}
                     onRefresh={fetchBooks}
+                    libraryId={activeLibraryId}
                   />
                 )}
               </AnimatePresence>
